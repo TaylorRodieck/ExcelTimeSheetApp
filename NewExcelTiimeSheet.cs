@@ -1,71 +1,101 @@
 using System;
+using System.Text;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Excel = Microsoft.Office.Interop.Excel;
 
 namespace PDFPageCounter2000
 {
-    
+
     class Program
     {
         [STAThread]
         static void Main(string[] args)
         {
-            Console.WriteLine("Please Enter your Username...(If New User, Type 'New User'");
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.WriteLine("Please Enter your Username... (If New User, Type 'New User')");
             string username = Console.ReadLine().ToString();
+            
             string password = null;
-            if (username != "New User")
+            if (username != "New User") ////Allows new users to bypass having to input a password that they have yet to make
             {
                 Console.WriteLine("Please Enter your Password...");
                 password = Console.ReadLine().ToString();
             }
+            List<string> tempLines = new List<string>();
+            
 
-            //D:\!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!Forbatches1through5\UsernamesPasswordsForProgramTesting.txt
-            string[] lines = File.ReadAllLines(@"D:\!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!Forbatches1through5\UsernamesPasswordsForProgramTesting.txt").Skip(1).ToArray();
-            bool result = false;
-
-            ////Credential checking begins here
-            foreach(var line in lines)
+            ////Checks for credentials txt file existence and possible creation begins here
+            if (File.Exists(@"D:\!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!Forbatches1through5\ExcelAppTester_1\UsernamesPasswordsForProgramTesting.txt") == true)
             {
-                var firstValue = line.Split(',');
-                string usernameInfo = firstValue[0];
-                string passwordInfo = firstValue[1];
-
-                if (usernameInfo == username)
+                tempLines = File.ReadAllLines(@"D:\!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!Forbatches1through5\ExcelAppTester_1\UsernamesPasswordsForProgramTesting.txt").Skip(1).ToList<string>();
+            }
+            else
+            {
+                using (StreamWriter sw1 = File.CreateText(@"D:\!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!Forbatches1through5\ExcelAppTester_1\UsernamesPasswordsForProgramTesting.txt"))
                 {
-                    if (passwordInfo == password)
+                    sw1.WriteLine("Usernames,Passwords");
+                    //sw1.Close();
+                }
+                tempLines = File.ReadAllLines(@"D:\!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!Forbatches1through5\ExcelAppTester_1\UsernamesPasswordsForProgramTesting.txt").Skip(1).ToList<string>();
+            }
+            
+            bool result = false;
+            string[] lines = tempLines.ToArray();
+            ////Checks for credentials txt file existence and possible creation ends here
+            
+
+            ////Credential checking/setting begins here
+            if (username == "New User") ///Creates account for a new user, and sets result to true to allow them to move on...
+            {
+                Console.WriteLine("Please enter your descriptive username(FirstnameLastname");
+                username = Console.ReadLine();
+                username = Encrypt(username);
+
+                Console.WriteLine("Please enter a secure password");
+                password = Console.ReadLine();
+                password = Encrypt(password);
+                
+                File.AppendAllText(@"D:\!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!Forbatches1through5\ExcelAppTester_1\UsernamesPasswordsForProgramTesting.txt", (username + "," + password));
+                Console.WriteLine("Success! Please continue with application...");
+                result = true;
+                
+            }
+            username = Encrypt(username); /// Encrypts username for returning users
+            password = Encrypt(password); /// Encrypts password for returning users
+
+            if(result == false) /// result should only be false for users with accounts at this point
+            {
+                foreach (var line in lines)
+                {
+
+                    var firstValue = line.Split(',');
+                    string usernameInfo = firstValue[0];
+                    string passwordInfo = firstValue[1];
+
+                    if (usernameInfo == username)
                     {
-                        result = true;
-                        break;
+                        if (passwordInfo == password)
+                        {
+                            result = true;
+                            break;
+                        }
+                        else
+                        {
+                            result = false; ///This line is for a wrong password but correct username
+                            continue;
+                        }
                     }
-                    else
+                    else ///This line is for a wrong username
                     {
                         result = false;
                         continue;
                     }
                 }
-                if (username == "New User")
-                {
-                    Console.WriteLine("Please enter your descriptive username(FirstnameLastname");
-                    username = Console.ReadLine();
-                    Console.WriteLine("Please enter a secure password");
-                    password = Console.ReadLine();
-                    using (StreamWriter swr = new StreamWriter(@"D:\!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!Forbatches1through5\UsernamesPasswordsForProgramTesting.txt", true))
-                    {
-                        swr.Write(Environment.NewLine);
-                        swr.Write(String.Format((username + "," + password)));
-                    }
-                    Console.WriteLine("Success! Please continue with application...");
-                    result = true;
-                    break;
-                }
-                else
-                {
-                    result = false;
-                    continue;
-                }
             }
-            ////Credential checking ends here, sorta
+            
+            ////Credential checking/setting ends here, sorta
 
             if (result == true)
             {
@@ -83,9 +113,9 @@ namespace PDFPageCounter2000
                 bool result2 = false;
 
                 ////Logic for setting up unique sheets for each user starts here
-                foreach(Excel.Worksheet sheet in xlWorkbook.Sheets)
+                foreach (Excel.Worksheet sheet in xlWorkbook.Sheets)
                 {
-                    if(sheet.Name == username)
+                    if (sheet.Name == username)
                     {
                         xlWorksheet = sheet;
                         xlWorkbook.Save();
@@ -98,7 +128,7 @@ namespace PDFPageCounter2000
                     }
                 }
 
-                if(result2 != true)
+                if (result2 != true)
                 {
                     xlWorksheet = xlWorkbook.Sheets.Add();
                     xlWorkbook.Save();
@@ -150,7 +180,7 @@ namespace PDFPageCounter2000
                             xlWorksheet.Cells[j, columnDenotation].Value = DateTime.Now.ToLongTimeString();
                             row = j;
                             xlWorkbook.Save();
-                            
+
                             break;
                         }
                     }
@@ -161,13 +191,12 @@ namespace PDFPageCounter2000
                             xlWorksheet.Cells[j, columnDenotation].Value = DateTime.Now.ToLongTimeString();
                             row = j;
                             xlWorkbook.Save();
-                            
+
                             break;
                         }
                     }
                 }
                 ////Pasting values into correct columns and rows ends here
-
 
 
                 xlWorkbook.Save();
@@ -185,6 +214,36 @@ namespace PDFPageCounter2000
                 Console.ReadKey();
             }
 
+        }
+        public static string Encrypt(string userInput) ////Encryption involves a basic conversion to hexadecimal for all letters and insertion of *
+        {                                              ////in between letters for added weirdness
+            byte[] bA = Encoding.Default.GetBytes(userInput);
+            var hexString = BitConverter.ToString(bA);
+            hexString = hexString.Replace("-", "*");
+            //Console.WriteLine(hexString.ToString());
+            return hexString.ToString();
+        }
+
+        public static string Decrypt(string stringToDecrypt)
+        {
+            List<string> catchArray = new List<string>();
+            string userInput = stringToDecrypt;
+            userInput = userInput.Replace("*", "-");
+            string[] userInputArray = userInput.Split('-');
+            //Console.WriteLine("Decryption Result Below...");
+            //Console.WriteLine();
+            foreach (string val in userInputArray)
+            {
+                int value = Convert.ToInt32(val, 16);
+                string stringValue = Char.ConvertFromUtf32(value);
+                char charValue = (char)value;
+                catchArray.Add(stringValue);
+                //Console.Write(stringValue);
+            }
+            
+            //Console.WriteLine();
+            //Console.WriteLine();
+            return catchArray.Aggregate((i,j) => i +j);
         }
     }
 }
